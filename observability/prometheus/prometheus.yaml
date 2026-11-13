@@ -14,3 +14,10 @@ scrape_configs:
   - job_name: 'tempo'
     static_configs:
       - targets: ['tempo:3200']
+
+  - job_name: 'otel-collector'
+    # Keep the app's own job label (from service.name) instead of overwriting it
+    # with 'otel-collector'; without this it ends up in exported_job.
+    honor_labels: true
+    static_configs:
+      - targets: ['otel-collector:8889']
