@@ -9,3 +9,4 @@ include:
   - loki/compose.yaml
   - tempo/compose.yaml
   - grafana/compose.yaml
+  - collector/compose.yaml
