@@ -1,0 +1,62 @@
+# Application services. Joins the shared `observability` network so services can
+# reach the telemetry backends; app traffic itself stays on the `app` network.
+#   docker compose -f compose.app.yml up -d   (app only)
+
+services:
+  redis:
+    image: redis:8.6.0-alpine
+    container_name: translation-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: translation-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3000
+      - LOG_LEVEL=info
+      - SOURCE_LANGUAGE=en
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+      - observability
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: translation-worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LOG_LEVEL=info
+      - SOURCE_LANGUAGE=en
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+      - observability
+    restart: unless-stopped
+
+networks:
+  app:
+    driver: bridge
+  observability:
+    name: observability
