@@ -1,20 +1,12 @@
 import './instrumentation';
 import express from 'express';
-import { logger } from './logger';
 import cors from 'cors';
 import { join } from 'path';
 import type { Server } from 'http';
-import { QueueService } from './services/queue';
-import { SSEManager } from './services/sse';
-import { createTranslationRouter } from './routes/translation';
-import type { TranslationResult } from './types';
-import {
-  propagation,
-  context,
-  SpanKind,
-  SpanStatusCode,
-} from '@opentelemetry/api';
-import { tracer, setSpanError } from './tracers';
+import { QueueService } from './services/queue.js';
+import { SSEManager } from './services/sse.js';
+import { createTranslationRouter } from './routes/translation.js';
+import type { TranslationResult } from './types.js';
 
 // Configuration
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -37,7 +29,7 @@ async function startServer(): Promise<void> {
     app.use(express.static(join(__dirname, 'public')));
 
     // Initialize services
-    logger.info('Initializing services');
+    console.log('Initializing services...');
 
     queueService = new QueueService({
       host: REDIS_HOST,
@@ -50,83 +42,37 @@ async function startServer(): Promise<void> {
 
     // Subscribe to translation results
     await queueService.subscribeToResults(async (result: TranslationResult) => {
-      const remoteCtx = propagation.extract(
-        context.active(),
-        result._traceContext ?? {},
-      );
+      console.log(`Received result for job ${result.jobId}: ${result.status}`);
 
-      logger.info('Translation result received', {
-        job_id: result.jobId,
-        session_id: result.sessionId,
-        target_language: result.targetLanguage,
-        status: result.status,
-      });
+      try {
+        // Update session in Redis
+        await queueService!.updateJobStatus(
+          result.sessionId,
+          result.targetLanguage,
+          result.status === 'completed' ? 'completed' : 'error',
+          result.translatedText,
+          result.error,
+        );
 
-      if (result.status === 'error') {
-        logger.error('Translation job failed', {
-          job_id: result.jobId,
-          session_id: result.sessionId,
-          target_language: result.targetLanguage,
-          error: result.error,
-        });
+        // Send SSE event
+        const eventType =
+          result.status === 'completed'
+            ? 'translation_complete'
+            : 'translation_error';
+
+        sseManager!.sendEvent(result.sessionId, eventType, result);
+
+        // Check if session is complete
+        const session = await queueService!.getSession(result.sessionId);
+        if (session && session.status === 'completed') {
+          sseManager!.sendEvent(result.sessionId, 'session_complete', {
+            sessionId: result.sessionId,
+            status: 'completed',
+          });
+        }
+      } catch (error) {
+        console.error('Error processing translation result:', error);
       }
-
-      await tracer.startActiveSpan(
-        'process_translation_result',
-        {
-          kind: SpanKind.CONSUMER,
-          attributes: {
-            'translation.job_id': result.jobId,
-            'translation.session_id': result.sessionId,
-            'translation.target_language': result.targetLanguage,
-            'translation.status': result.status,
-          },
-        },
-        remoteCtx,
-        async (resultSpan) => {
-          try {
-            // Update session in Redis
-            await queueService!.updateJobStatus(
-              result.sessionId,
-              result.targetLanguage,
-              result.status === 'completed' ? 'completed' : 'error',
-              result.translatedText,
-              result.error,
-            );
-
-            // Send SSE event
-            const eventType =
-              result.status === 'completed'
-                ? 'translation_complete'
-                : 'translation_error';
-
-            sseManager!.sendEvent(result.sessionId, eventType, result);
-
-            // Check if session is complete
-            const session = await queueService!.getSession(result.sessionId);
-            if (session && session.status === 'completed') {
-              sseManager!.sendEvent(result.sessionId, 'session_complete', {
-                sessionId: result.sessionId,
-                status: 'completed',
-              });
-              logger.info('Translation session completed', {
-                session_id: result.sessionId,
-                status: 'completed',
-              });
-            }
-
-            resultSpan.setStatus({ code: SpanStatusCode.OK });
-          } catch (error) {
-            setSpanError(resultSpan, error);
-            logger.error('Error processing translation result', {
-              error: error instanceof Error ? error.message : 'Unknown error',
-              stack: error instanceof Error ? error.stack : undefined,
-            });
-          } finally {
-            resultSpan.end();
-          }
-        },
-      );
     });
 
     // Mount routes
@@ -143,22 +89,17 @@ async function startServer(): Promise<void> {
 
     // Start server
     server = app.listen(PORT, () => {
-      logger.info('Frontend server started', { port: PORT });
-      logger.info('Health check available', {
-        url: `http://localhost:${PORT}/health`,
-      });
+      console.log(`Frontend server listening on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
-    logger.error('Failed to start server', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 }
 
 async function gracefulShutdown(signal: string): Promise<void> {
-  logger.info('Received shutdown signal', { signal });
+  console.log(`\nReceived ${signal}, shutting down gracefully...`);
 
   try {
     // Close SSE connections
@@ -174,7 +115,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
           else resolve();
         });
       });
-      logger.info('HTTP server closed');
+      console.log('HTTP server closed');
     }
 
     // Disconnect from Redis
@@ -182,13 +123,10 @@ async function gracefulShutdown(signal: string): Promise<void> {
       await queueService.disconnect();
     }
 
-    logger.info('Graceful shutdown complete');
+    console.log('Graceful shutdown complete');
     process.exit(0);
   } catch (error) {
-    logger.error('Error during shutdown', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.error('Error during shutdown:', error);
     process.exit(1);
   }
 }
@@ -199,26 +137,17 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught exception', {
-    error: error.message,
-    stack: error.stack,
-  });
+  console.error('Uncaught exception:', error);
   gracefulShutdown('uncaughtException');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled rejection', {
-    reason: reason instanceof Error ? reason.message : String(reason),
-    stack: reason instanceof Error ? reason.stack : undefined,
-  });
+  console.error('Unhandled rejection at:', promise, 'reason:', reason);
   gracefulShutdown('unhandledRejection');
 });
 
 // Start the server
 startServer().catch((error) => {
-  logger.error('Fatal error starting server', {
-    error: error instanceof Error ? error.message : 'Unknown error',
-    stack: error instanceof Error ? error.stack : undefined,
-  });
+  console.error('Fatal error:', error);
   process.exit(1);
 });

@@ -1,5 +1,4 @@
 import type { Response } from 'express';
-import { logger } from '../logger';
 
 export interface SSEConnection {
   res: Response;
@@ -34,18 +33,13 @@ export class SSEManager {
       this.removeConnection(sessionId, res);
     });
 
-    const connection_count = this.connections.get(sessionId)!.size;
-    logger.info('SSE connection added', { session_id: sessionId, connection_count });
+    console.log(`SSE connection added for session ${sessionId}`);
   }
 
   sendEvent(sessionId: string, event: string, data: unknown): void {
     const connections = this.connections.get(sessionId);
 
     if (!connections || connections.size === 0) {
-      logger.warn('SSE event dropped: no active connections for session', {
-        session_id: sessionId,
-        event,
-      });
       return;
     }
 
@@ -57,19 +51,14 @@ export class SSEManager {
       try {
         res.write(message);
       } catch (error) {
-        logger.error('Error writing to SSE connection', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-        });
+        console.error('Error writing to SSE connection:', error);
         this.removeConnection(sessionId, res);
       }
     }
 
-    logger.info('SSE event sent', {
-      session_id: sessionId,
-      event,
-      connection_count: connections.size,
-    });
+    console.log(
+      `Sent ${event} event to ${connections.size} connection(s) for session ${sessionId}`,
+    );
   }
 
   removeConnection(sessionId: string, res: Response): void {
@@ -82,10 +71,7 @@ export class SSEManager {
         this.connections.delete(sessionId);
       }
 
-      logger.info('SSE connection removed', {
-        session_id: sessionId,
-        remaining_connections: connections.size,
-      });
+      console.log(`SSE connection removed for session ${sessionId}`);
     }
 
     // Close the response if not already closed
@@ -102,17 +88,13 @@ export class SSEManager {
     const connections = this.connections.get(sessionId);
 
     if (connections) {
-      const connection_count = connections.size;
       for (const res of connections) {
         if (!res.writableEnded) {
           res.end();
         }
       }
       this.connections.delete(sessionId);
-      logger.info('Closed all SSE connections for session', {
-        session_id: sessionId,
-        connection_count,
-      });
+      console.log(`Closed all SSE connections for session ${sessionId}`);
     }
   }
 
@@ -125,6 +107,6 @@ export class SSEManager {
       }
     }
     this.connections.clear();
-    logger.info('Closed all SSE connections');
+    console.log('Closed all SSE connections');
   }
 }
