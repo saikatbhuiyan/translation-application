@@ -4,11 +4,13 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleNameMapper: {
-    '^(\.{1,2}/.*)\.js$': '$1',
+    // Escaped backslashes: in a plain string '\.' collapses to '.', which made
+    // this match any char before 'js' (e.g. '.cjs') and break CJS deps.
+    '^(\\.{1,2}/.*)\\.js$': '$1',
     '^uuid$': '<rootDir>/tests/__mocks__/uuid.ts',
   },
   transform: {
-    '^.+\.ts$': [
+    '^.+\\.ts$': [
       'ts-jest',
       {
         diagnostics: {
