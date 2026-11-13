@@ -1,0 +1,9 @@
+# Observability stack entry point. Each component lives in its own folder
+# (<component>/compose.yaml + its config); add a new one by creating the folder
+# and listing it below.
+#
+#   docker compose -f observability/compose.yaml up -d
+
+include:
+  - prometheus/compose.yaml
+  - loki/compose.yaml
