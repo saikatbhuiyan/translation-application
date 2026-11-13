@@ -7,3 +7,4 @@
 include:
   - prometheus/compose.yaml
   - loki/compose.yaml
+  - tempo/compose.yaml
