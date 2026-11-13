@@ -1,6 +1,6 @@
 # Application services. Joins the shared `observability` network so services can
 # reach the telemetry backends; app traffic itself stays on the `app` network.
-#   docker compose -f compose.app.yml up -d   (app only)
+# Networks are defined in the root compose.yml.
 
 services:
   redis:
@@ -55,8 +55,3 @@ services:
       - observability
     restart: unless-stopped
 
-networks:
-  app:
-    driver: bridge
-  observability:
-    name: observability

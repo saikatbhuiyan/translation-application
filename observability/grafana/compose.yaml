@@ -19,9 +19,5 @@ services:
       - loki
       - tempo
 
-networks:
-  observability:
-    name: observability
-
 volumes:
   grafana-data:

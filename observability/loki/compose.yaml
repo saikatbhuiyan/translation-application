@@ -16,10 +16,6 @@ services:
       - observability
     restart: unless-stopped
 
-networks:
-  observability:
-    name: observability
-
 volumes:
   loki-data:
   loki-wal:

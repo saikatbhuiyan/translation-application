@@ -2,7 +2,7 @@
 # (<component>/compose.yaml + its config); add a new one by creating the folder
 # and listing it below.
 #
-#   docker compose -f observability/compose.yaml up -d
+# Run via the root compose.yml (it defines the shared `observability` network).
 
 include:
   - prometheus/compose.yaml

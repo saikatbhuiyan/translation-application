@@ -14,9 +14,5 @@ services:
       - observability
     restart: unless-stopped
 
-networks:
-  observability:
-    name: observability
-
 volumes:
   tempo-data:

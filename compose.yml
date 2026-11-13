@@ -1,8 +1,17 @@
 # Full stack: application + observability.
 #   docker compose up -d
 #
-# Networks are defined by the included files, not here — compose rejects an
-# including file that redefines a resource an included file already defines.
+# Networks are defined only here. Included files must not redefine them —
+# compose rejects that with "conflicts with imported resource".
 include:
   - observability/compose.yaml
   - compose.app.yml
+
+# Shared networks for all services
+networks:
+  observability:
+    driver: bridge
+    name: observability
+  app:
+    driver: bridge
+    name: app
