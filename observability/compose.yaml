@@ -8,3 +8,4 @@ include:
   - prometheus/compose.yaml
   - loki/compose.yaml
   - tempo/compose.yaml
+  - grafana/compose.yaml
