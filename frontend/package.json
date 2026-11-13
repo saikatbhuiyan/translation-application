@@ -20,18 +20,20 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/auto-instrumentations-node": "0.70.1",
-    "@opentelemetry/exporter-logs-otlp-http": "0.212.0",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.212.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.212.0",
-    "@opentelemetry/instrumentation-winston": "0.56.0",
-    "@opentelemetry/sdk-node": "0.212.0",
-    "@opentelemetry/winston-transport": "0.10.0",
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/auto-instrumentations-node": "0.83.1",
+    "@opentelemetry/exporter-logs-otlp-http": "0.301.2",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.301.2",
+    "@opentelemetry/exporter-trace-otlp-http": "0.301.2",
+    "@opentelemetry/instrumentation-winston": "0.70.0",
+    "@opentelemetry/sdk-logs": "3.1.1",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@opentelemetry/sdk-node": "0.301.2",
+    "@opentelemetry/winston-transport": "0.35.0",
     "cors": "2.8.6",
     "express": "5.2.1",
     "ioredis": "5.9.3",
-    "uuid": "13.0.0",
+    "uuid": "13.0.2",
     "winston": "3.19.0"
   },
   "devDependencies": {
@@ -39,10 +41,10 @@
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
     "@types/supertest": "6.0.3",
-    "jest": "30.2.0",
+    "jest": "30.5.2",
     "supertest": "7.2.2",
-    "ts-jest": "29.4.6",
-    "tsx": "4.21.0",
+    "ts-jest": "29.4.15",
+    "tsx": "4.23.15",
     "typescript": "5.9.3"
   }
 }

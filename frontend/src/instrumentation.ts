@@ -12,18 +12,20 @@ const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter({
     url: 'http://otel-collector:4318/v1/traces',
   }),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter({
-      url: 'http://otel-collector:4318/v1/metrics',
+  metricReaders: [
+    new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter({
+        url: 'http://otel-collector:4318/v1/metrics',
+      }),
+      exportIntervalMillis: 10000,
     }),
-    exportIntervalMillis: 10000,
-  }),
+  ],
   logRecordProcessors: [
-    new BatchLogRecordProcessor(
-      new OTLPLogExporter({
+    new BatchLogRecordProcessor({
+      exporter: new OTLPLogExporter({
         url: 'http://otel-collector:4318/v1/logs',
       }),
-    ),
+    }),
   ],
   instrumentations: [
     getNodeAutoInstrumentations(),
