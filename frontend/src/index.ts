@@ -1,4 +1,9 @@
-import './instrumentation';
+// Must run before express/http/ioredis are loaded so auto-instrumentation can
+// patch them. Safe here because the project compiles to CommonJS, which keeps
+// statement order (an ESM build would hoist the imports below above this call).
+import { initInstrumentation } from './instrumentation';
+initInstrumentation();
+
 import express from 'express';
 import cors from 'cors';
 import { join } from 'path';
